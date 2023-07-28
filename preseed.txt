@@ -1,0 +1,92 @@
+# disable Predictable Network Interface Names (not supported in Vagrant 1.8.1).
+d-i debian-installer/add-kernel-opts string net.ifnames=0
+d-i preseed/late_command string \
+      for i in 1 2 3; do \
+        echo "auto eth$i" >>/target/etc/network/interfaces; \
+        echo "iface eth$i inet manual" >>/target/etc/network/interfaces; \
+      done; \
+      in-target systemctl enable ssh
+
+# do not scan for another cd.
+apt-cdrom-setup apt-setup/cdrom/set-double boolean true
+apt-cdrom-setup apt-setup/cdrom/set-failed boolean true
+apt-cdrom-setup apt-setup/cdrom/set-first boolean false
+apt-cdrom-setup apt-setup/cdrom/set-next boolean false
+
+d-i debian-installer/locale string en_US.UTF-8
+d-i localechooser/supported-locales multiselect en_US.UTF-8, pt_PT.UTF-8
+
+d-i keyboard-configuration/xkb-keymap select pt
+
+d-i mirror/country string manual
+d-i mirror/http/hostname string http.kali.org
+d-i mirror/http/directory string /kali
+d-i mirror/http/proxy string
+
+d-i clock-setup/utc boolean true
+d-i time/zone string Europe/Lisbon
+
+d-i partman-basicfilesystems/no_swap boolean false
+d-i partman-auto/method string regular
+d-i partman-auto/expert_recipe string \
+      root ::                         \
+        1 1 1 free                    \
+          $iflabel{ gpt }             \
+          $gptonly{ }                 \
+          $primary{ }                 \
+          $bios_boot{ }               \
+          method{ biosgrub }          \
+        .                             \
+        100 1 100 fat32               \
+          $iflabel{ gpt }             \
+          $gptonly{ }                 \
+          $primary{ }                 \
+          method{ efi }               \
+          format{ }                   \
+        .                             \
+        1 1 -1 ext4                   \
+          $primary{ }                 \
+          $bootable{ }                \
+          method{ format }            \
+          format{ }                   \
+          use_filesystem{ }           \
+          filesystem{ ext4 }          \
+          mountpoint{ / }             \
+        .
+d-i partman/choose_partition select finish
+d-i partman/confirm_nooverwrite boolean true
+
+d-i grub-installer/bootdev string default
+d-i grub-installer/only_debian boolean true
+d-i finish-install/reboot_in_progress note
+
+# also install the UEFI bootloader at /boot/efi/EFI/BOOT/BOOTX64.EFI.
+# NB this is needed to support buggy systems like the HP EliteDesk 800 G2 Desktop Mini.
+# NB Ubuntu 20.04 also installs BOOTX64.EFI.
+# see https://wiki.debian.org/UEFI#Force_grub-efi_installation_to_the_removable_media_path
+d-i grub-installer/force-efi-extra-removable boolean true
+
+d-i passwd/root-login boolean false
+d-i passwd/root-password password vagrant
+d-i passwd/root-password-again password vagrant
+d-i passwd/user-fullname string vagrant
+d-i passwd/username string vagrant
+d-i passwd/user-password password vagrant
+d-i passwd/user-password-again password vagrant
+d-i user-setup/allow-password-weak boolean true
+d-i user-setup/encrypt-home boolean false
+
+popularity-contest popularity-contest/participate boolean false
+
+tasksel tasksel/first multiselect
+d-i pkgsel/include string \
+  sudo \
+  openssh-server \
+  vim \
+  kali-desktop-xfce \
+  kali-linux-default
+d-i pkgsel/upgrade select full-upgrade
+d-i pkgsel/update-policy select none
+d-i apt-setup/contrib boolean true
+d-i apt-setup/non-free boolean true
+d-i apt-setup/non-free-firmware boolean true

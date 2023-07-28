@@ -1,0 +1,29 @@
+ENV['VAGRANT_EXPERIMENTAL'] = 'typed_triggers'
+
+Vagrant.configure(2) do |config|
+  config.vm.box = 'kali-2023.2-amd64'
+
+  config.vm.hostname = 'example.test'
+
+  config.vm.provider 'libvirt' do |lv, config|
+    lv.default_prefix = "#{File.basename(File.dirname(File.dirname(__FILE__)))}_"
+    lv.memory = 2048
+    lv.cpus = 2
+    lv.cpu_mode = 'host-passthrough'
+    lv.nested = true # nested virtualization.
+    lv.keymap = 'pt'
+    lv.machine_virtual_size = 16 # bump the disk size to 16 GiB.
+    lv.disk_driver :discard => 'unmap', :cache => 'unsafe'
+    config.vm.synced_folder '.', '/vagrant', type: 'nfs', nfs_version: '4.2', nfs_udp: false
+  end
+
+  config.vm.provision 'shell', inline: "echo \"provisioning user is $(id #{$provision_username})\""
+  config.vm.provision 'shell', inline: 'cat /etc/os-release', name: 'os-release'
+  config.vm.provision 'shell', inline: 'echo "machine-id is $(cat /etc/machine-id)"'
+  config.vm.provision 'shell', inline: 'echo "machine firmware is $([ -d /sys/firmware/efi ] && echo UEFI || echo BIOS)"', name: 'machine firmware'
+  config.vm.provision 'shell', inline: 'cat /etc/debian_version', name: 'debian_version'
+  config.vm.provision 'shell', inline: 'sfdisk -l', name: 'disk partitions'
+  config.vm.provision 'shell', inline: 'lsblk -x KNAME -o KNAME,SIZE,TRAN,SUBSYSTEMS,FSTYPE,UUID,LABEL,MODEL,SERIAL', name: 'block devices'
+  config.vm.provision 'shell', inline: 'df -h', name: 'disk space usage'
+  config.vm.provision 'shell', inline: "dpkg-query -W -f='${binary:Package}\\n' | sort >/vagrant/#{config.vm.box}-packages.txt", name: 'package list'
+end
