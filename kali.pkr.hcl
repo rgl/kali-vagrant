@@ -5,6 +5,11 @@ packer {
       version = "1.0.9"
       source  = "github.com/hashicorp/qemu"
     }
+    # see https://github.com/hashicorp/packer-plugin-proxmox
+    proxmox = {
+      version = "1.1.3"
+      source  = "github.com/hashicorp/proxmox"
+    }
   }
 }
 
@@ -29,6 +34,11 @@ variable "iso_url" {
 variable "iso_checksum" {
   type    = string
   default = "sha256:7790115f6df268d93924a9bf079021b6b8f0c28d6255476fd102efd387dfbbf6"
+}
+
+variable "proxmox_node" {
+  type    = string
+  default = env("PROXMOX_NODE")
 }
 
 source "qemu" "kali-amd64" {
@@ -71,9 +81,63 @@ source "qemu" "kali-amd64" {
   shutdown_command = "echo vagrant | sudo -S poweroff"
 }
 
+source "proxmox-iso" "kali-amd64" {
+  template_name            = "template-kali-${var.version}"
+  template_description     = "See https://github.com/rgl/kali-vagrant"
+  insecure_skip_tls_verify = true
+  node                     = var.proxmox_node
+  machine                  = "q35"
+  bios                     = "ovmf"
+  efi_config {
+    efi_storage_pool = "local-lvm"
+  }
+  cpu_type = "host"
+  cores    = 2
+  memory   = 2 * 1024
+  vga {
+    type   = "qxl"
+    memory = 16
+  }
+  network_adapters {
+    model  = "virtio"
+    bridge = "vmbr0"
+  }
+  scsi_controller = "virtio-scsi-pci"
+  disks {
+    type         = "scsi"
+    disk_size    = "${var.disk_size}M"
+    storage_pool = "local-lvm"
+  }
+  iso_storage_pool = "local"
+  iso_url          = var.iso_url
+  iso_checksum     = var.iso_checksum
+  unmount_iso      = true
+  os               = "l26"
+  ssh_username     = "vagrant"
+  ssh_password     = "vagrant"
+  ssh_timeout      = "60m"
+  http_directory   = "."
+  boot_wait        = "30s"
+  boot_command = [
+    "c<wait>",
+    "linux /install.amd/vmlinuz",
+    " auto=true",
+    " url={{.HTTPIP}}:{{.HTTPPort}}/preseed.txt",
+    " hostname=vagrant",
+    " domain=home",
+    " net.ifnames=0",
+    " BOOT_DEBUG=2",
+    " DEBCONF_DEBUG=5",
+    "<enter>",
+    "initrd /install.amd/initrd.gz<enter>",
+    "boot<enter>"
+  ]
+}
+
 build {
   sources = [
     "source.qemu.kali-amd64",
+    "source.proxmox-iso.kali-amd64",
   ]
 
   provisioner "shell" {
@@ -86,6 +150,9 @@ build {
   }
 
   post-processor "vagrant" {
+    only = [
+      "qemu.kali-amd64",
+    ]
     output               = var.vagrant_box
     vagrantfile_template = "Vagrantfile.template"
   }

@@ -61,6 +61,33 @@ vagrant destroy -f
 ```
 
 
+## proxmox usage
+
+Install [proxmox](https://www.proxmox.com/en/proxmox-ve).
+
+**NB** This assumes proxmox was installed alike [rgl/proxmox-ve](https://github.com/rgl/proxmox-ve).
+
+Set your proxmox details:
+
+```bash
+cat >secrets-proxmox.sh <<EOF
+export PROXMOX_URL='https://192.168.1.21:8006/api2/json'
+export PROXMOX_USERNAME='root@pam'
+export PROXMOX_PASSWORD='vagrant'
+export PROXMOX_NODE='pve'
+EOF
+source secrets-proxmox.sh
+```
+
+Create the template:
+
+```bash
+make build-proxmox
+```
+
+**NB** There is no way to use the created template with vagrant (the [vagrant-proxmox plugin](https://github.com/telcat/vagrant-proxmox) is no longer compatible with recent vagrant versions). Instead, use packer or terraform.
+
+
 # Alternatives
 
 * https://gitlab.com/kalilinux/build-scripts/kali-vagrant
