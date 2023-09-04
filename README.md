@@ -88,6 +88,71 @@ make build-proxmox
 **NB** There is no way to use the created template with vagrant (the [vagrant-proxmox plugin](https://github.com/telcat/vagrant-proxmox) is no longer compatible with recent vagrant versions). Instead, use packer or terraform.
 
 
+## VMware vSphere usage
+
+Download [govc](https://github.com/vmware/govmomi/releases/latest) and place it inside your `/usr/local/bin` directory.
+
+Set your vSphere details, and test the connection to vSphere:
+
+```bash
+sudo apt-get install build-essential patch ruby-dev zlib1g-dev liblzma-dev
+vagrant plugin install vagrant-vsphere
+cat >secrets-vsphere.sh <<EOF
+export GOVC_INSECURE='1'
+export GOVC_HOST='vsphere.local'
+export GOVC_URL="https://$GOVC_HOST/sdk"
+export GOVC_USERNAME='administrator@vsphere.local'
+export GOVC_PASSWORD='password'
+export GOVC_DATACENTER='Datacenter'
+export GOVC_CLUSTER='Cluster'
+export GOVC_DATASTORE='Datastore'
+export VSPHERE_OS_ISO="[$GOVC_DATASTORE] iso/kali-linux-2023.3-installer-netinst-amd64.iso"
+export VSPHERE_ESXI_HOST='esxi.local'
+export VSPHERE_TEMPLATE_FOLDER='test/templates'
+export VSPHERE_TEMPLATE_NAME="$VSPHERE_TEMPLATE_FOLDER/kali-2023.3-amd64"
+export VSPHERE_VM_FOLDER='test'
+export VSPHERE_VM_NAME='kali-vagrant-example'
+export VSPHERE_VLAN='packer'
+# set the credentials that the guest will use
+# to connect to this host smb share.
+# NB you should create a new local user named _vagrant_share
+#    and use that one here instead of your user credentials.
+# NB it would be nice for this user to have its credentials
+#    automatically rotated, if you implement that feature,
+#    let me known!
+export VAGRANT_SMB_USERNAME='_vagrant_share'
+export VAGRANT_SMB_PASSWORD=''
+EOF
+source secrets-vsphere.sh
+# see https://github.com/vmware/govmomi/blob/master/govc/USAGE.md
+govc version
+govc about
+govc datacenter.info # list datacenters
+govc find # find all managed objects
+```
+
+Download the Kali ISO (you can find the full iso URL in the [kali.pkr.hcl](kali.pkr.hcl) file) and place it inside the datastore as defined by the `vsphere_iso_url` user variable that is inside the [packer template](kali-vsphere.pkr.hcl).
+
+See the [example Vagrantfile](example/Vagrantfile) to see how you could use a cloud-init configuration to configure the VM.
+
+Create the base image:
+
+```bash
+source secrets-vsphere.sh
+make build-vsphere
+```
+
+Try the example guest:
+
+```bash
+cd example
+vagrant up --provider=vsphere --no-destroy-on-error
+vagrant ssh
+exit
+vagrant destroy -f
+```
+
+
 # Alternatives
 
 * https://gitlab.com/kalilinux/build-scripts/kali-vagrant
