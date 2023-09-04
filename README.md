@@ -1,6 +1,6 @@
 This builds an up-to-date Vagrant Kali Linux Base Box.
 
-Currently this targets [Kali Linux 2023.2](https://www.kali.org).
+Currently this targets [Kali Linux 2023.3](https://www.kali.org).
 
 [Kali Linux is based on Debian Testing](https://www.kali.org/docs/policy/kali-linux-relationship-with-debian/).
 

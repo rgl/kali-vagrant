@@ -28,12 +28,12 @@ variable "disk_size" {
 
 variable "iso_url" {
   type    = string
-  default = "https://cdimage.kali.org/kali-2023.2/kali-linux-2023.2a-installer-netinst-amd64.iso"
+  default = "https://cdimage.kali.org/kali-2023.3/kali-linux-2023.3-installer-netinst-amd64.iso"
 }
 
 variable "iso_checksum" {
   type    = string
-  default = "sha256:7790115f6df268d93924a9bf079021b6b8f0c28d6255476fd102efd387dfbbf6"
+  default = "sha256:0b0f5560c21bcc1ee2b1fef2d8e21dca99cc6efa938a47108bbba63bec499779"
 }
 
 variable "proxmox_node" {
@@ -74,9 +74,11 @@ source "qemu" "kali-amd64" {
     " net.ifnames=0",
     " BOOT_DEBUG=2",
     " DEBCONF_DEBUG=5",
-    "<enter>",
-    "initrd /install.amd/initrd.gz<enter>",
-    "boot<enter>",
+    "<enter><wait5s>",
+    "initrd /install.amd/initrd.gz",
+    "<enter><wait5s>",
+    "boot",
+    "<enter><wait5s>",
   ]
   shutdown_command = "echo vagrant | sudo -S poweroff"
 }
@@ -128,9 +130,11 @@ source "proxmox-iso" "kali-amd64" {
     " net.ifnames=0",
     " BOOT_DEBUG=2",
     " DEBCONF_DEBUG=5",
-    "<enter>",
-    "initrd /install.amd/initrd.gz<enter>",
-    "boot<enter>"
+    "<enter><wait5s>",
+    "initrd /install.amd/initrd.gz",
+    "<enter><wait5s>",
+    "boot",
+    "<enter><wait5s>",
   ]
 }
 

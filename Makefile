@@ -1,7 +1,7 @@
 SHELL=bash
 .SHELLFLAGS=-euo pipefail -c
 
-VERSION=2023.2
+VERSION=2023.3
 
 export PROXMOX_URL?=https://192.168.1.21:8006/api2/json
 export PROXMOX_USERNAME?=root@pam
